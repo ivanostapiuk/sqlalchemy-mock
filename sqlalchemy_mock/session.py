@@ -4,9 +4,8 @@ from .utils import set_choice_fields_to_record, set_primary_key_to_record, mock_
 
 
 class Session:
-    __storage = {}
-
     def __init__(self, primary_key: str = "uuid", primary_key_generate: object = lambda: str(uuid.uuid4())):
+        self.__storage = {}
         self.primary_key = primary_key
         self.primary_key_generate = primary_key_generate
 
