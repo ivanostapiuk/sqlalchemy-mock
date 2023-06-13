@@ -1,1 +1,2 @@
 from sqlalchemy_mock.session import Session
+from sqlalchemy_mock.async_session import AsyncSession

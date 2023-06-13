@@ -1,6 +1,9 @@
 import uuid
+import sqlalchemy
+
 from .query import Query
-from .utils import set_choice_fields_to_record, set_primary_key_to_record, mock_sessions_methods
+from .execute import Execute
+from .utils import set_choice_fields_to_record, set_primary_key_to_record, mock_sessions_methods, set_default_fields
 
 
 class Session:
@@ -9,9 +12,10 @@ class Session:
         self.primary_key = primary_key
         self.primary_key_generate = primary_key_generate
 
-    def add(self, record: object):
+    def add(self, record: object, *args, **kwargs):
         set_primary_key_to_record(record, self.primary_key, self.primary_key_generate)
         set_choice_fields_to_record(record)
+        set_default_fields(record)
 
         record_table = str(type(record))
         if not record_table in self.__storage:
@@ -34,7 +38,46 @@ class Session:
 
     def flush(self): ...
 
-    def refresh(self, record: object): return record
+    def get_label_columns(self, model: object):
+        label_columns = []
+        for column in sqlalchemy.inspection.inspect(model).c:
+            if isinstance(column, sqlalchemy.sql.elements.Label):
+                label_columns.append(column)
+
+        return label_columns
+
+    def process_sql_columns(self, record: object, label_columns: list):
+        for column in label_columns:
+            for filter_ in column.element._where_criteria:
+                if isinstance(filter_.right, sqlalchemy.sql.annotation.AnnotatedColumn):
+                    setattr(filter_.right, "value", getattr(record, filter_.right.key, None))
+
+            setattr(record, column.key, self.execute(column.element).scalar_one())
+
+    def refresh(self, record: object, *args, **kwargs):
+        label_columns = self.get_label_columns(record.__class__)
+        record = self.process_sql_columns(record, label_columns)
+        return record
 
     def mock_session(self):
         return mock_sessions_methods(self)
+
+    def execute(self, expresion: object, *args, **kwargs):
+        if not getattr(expresion, "element", None) is None:
+            expresion = expresion.element
+
+        expresion_selected_columns = getattr(expresion, "selected_columns", [])
+        instance = expresion._propagate_attrs["plugin_subject"].class_
+        selected_columns = [column.name for column in expresion_selected_columns]
+        records = self.__storage.get(str(instance), [])
+
+        if not getattr(expresion, "_raw_columns", None) is None and not getattr(expresion._raw_columns[0], "_columns", None) is None:
+            selected_columns = []
+
+        sql_columns = []
+        for selected_column in expresion_selected_columns:
+            if not getattr(selected_column, "element", None) is None:
+                sql_columns.append(selected_column)
+
+        execute = Execute(self, instance, expresion, records, selected_columns, sql_columns)
+        return execute.process()

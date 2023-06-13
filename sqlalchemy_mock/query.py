@@ -1,4 +1,4 @@
-from .utils import set_choice_fields_to_record, compare_record_with_filter
+from .utils import filter_records, set_choice_fields_to_record, sort_records
 
 
 class Query:
@@ -11,19 +11,8 @@ class Query:
     def __iter__(self):
         for record in self.records: yield record
 
-    def __check_record_with_filter(self, record: object, filters: list):
-        for filter in filters:
-            result = compare_record_with_filter(record, filter)
-            if result is not None: return result
-        return True
-
     def filter(self, *filters: tuple):
-        result = []
-        for record in self.records:
-            if self.__check_record_with_filter(record, list(filters)):
-                result.append(record)
-
-        self.records = result
+        self.records = filter_records(filters, self.records)
         return self
 
     def count(self): return len(self.records)
@@ -42,14 +31,8 @@ class Query:
         self.offset_value = value
         return self
 
-    def order_by(self, value: object):
-        if not value is None:
-            if not getattr(value, "element", None) is None:
-                if value.modifier.__name__ == "desc_op":
-                    self.records.sort(key=lambda x: getattr(x, value.element.name), reverse=True)
-            else:
-                self.records.sort(key=lambda x: getattr(x, value.name))
-
+    def order_by(self, field: object):
+        self.records = sort_records(field, self.records)
         return self
 
     def first(self):
