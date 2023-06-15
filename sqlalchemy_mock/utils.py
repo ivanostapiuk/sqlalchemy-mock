@@ -7,10 +7,12 @@ import sqlalchemy
 
 def set_choice_fields_to_record(record: object):
     for column in record.__table__.columns:
-        if getattr(column.type, "choices", None):
-            if isinstance(getattr(record, column.name), str):
-                setattr(record, column.name, getattr(column.type.choices, getattr(record, column.name)))
+        enum_attribute = None
+        if getattr(column.type, "enum_class", None): enum_attribute = "enum_class"
+        if getattr(column.type, "choices", None): enum_attribute = "choices"
 
+        if enum_attribute and isinstance(getattr(record, column.name), str):
+            setattr(record, column.name, getattr(getattr(column.type, enum_attribute), getattr(record, column.name)))
 
 def set_primary_key_to_record(record: object, primary_key: str, primary_key_generate: object):
     if not getattr(record, primary_key, None):
