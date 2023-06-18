@@ -62,6 +62,9 @@ class Session:
     def mock_session(self):
         return mock_sessions_methods(self)
 
+    def get_records_by_instance(self, instance: object):
+        return self.__storage.get(str(instance), [])
+
     def execute(self, expresion: object, *args, **kwargs):
         if not getattr(expresion, "element", None) is None:
             expresion = expresion.element

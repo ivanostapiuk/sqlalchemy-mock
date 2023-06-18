@@ -14,12 +14,47 @@ class Execute:
         self.filters = ()
         self.offset = None
         self.limit = None
+        self.raw_data = []
 
     def __iter__(self):
         for record in self.records: yield record
 
     def __len__(self):
         return len(self.records)
+
+    def _unite_records(self, first_record: object, second_record: object, selected_columns: list):
+        records = {
+            type(first_record): first_record,
+            type(second_record): second_record
+        }
+
+        data = {}
+        for column in selected_columns:
+            column_table = column._propagate_attrs["plugin_subject"].class_
+            record = records.get(column_table, None)
+
+            if record:
+                column_name = column.key
+                if not getattr(column, "element", None) is None: column = column.element
+
+                value = getattr(record, column.key)
+                data.update({column_name: value})
+
+        return data
+
+    def _join(self):
+        join_instance = self.expresion._setup_joins[0][0]._propagate_attrs["plugin_subject"].class_
+        join_records = self.session.get_records_by_instance(join_instance)
+
+        for record in self.records:
+            join_filter = self.expresion._setup_joins[0][1]
+
+            if isinstance(join_filter.right, sqlalchemy.sql.annotation.AnnotatedColumn):
+                setattr(join_filter.right, "value", getattr(record, join_filter.right.key, None))
+
+            join_record = filter_records([join_filter], join_records)
+            join_record = join_record[0] if join_record else None
+            self.raw_data.append(self._unite_records(record, join_record, self.expresion._all_selected_columns))
 
     def _select(self):
         if not self.expresion._offset_clause is None:
@@ -34,6 +69,8 @@ class Execute:
             order_by = self.expresion._order_by_clauses[0]
 
         self.records = sort_records(order_by, self.records)
+        if self.expresion._setup_joins: self._join()
+
         return self
 
     def _update(self):
@@ -48,8 +85,13 @@ class Execute:
         self.session.delete(self.instance, self.records)
 
     def slice_records(self):
+        records = self.raw_data if self.raw_data else self.records
+
         limit = self.offset + self.limit if self.offset else self.limit
-        self.records = self.records[self.offset:limit]
+        records = records[self.offset:limit]
+
+        if self.raw_data: self.raw_data = records
+        else: self.records = records
 
     def get_selected_columns(self):
         if len(self.selected_columns) == 1:
@@ -73,6 +115,9 @@ class Execute:
 
     def scalars(self):
         self.slice_records()
+        if self.raw_data:
+            return [type("", (object,), raw_record) for raw_record in self.raw_data]
+
         self.set_uuid_fields()
         if self.sql_columns: self.set_sql_columns()
         if self.selected_columns: return self.get_selected_columns()
@@ -90,8 +135,8 @@ class Execute:
 
     def first(self):
         self.slice_records()
-        if self.records:
-            return self.records[0]
+        if self.raw_data: return type("", (object,), self.raw_data[0])
+        if self.records: return self.records[0]
         return
 
     def process_filters(self):
