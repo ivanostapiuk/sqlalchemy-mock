@@ -80,7 +80,13 @@ class Execute:
 
     def scalar_one(self):
         self.slice_records()
-        return len(self.records)
+        self.set_uuid_fields()
+        if self.sql_columns: self.set_sql_columns()
+        if self.selected_columns:
+            if self.selected_columns[0] == "count": return len(self.records)
+            columns = self.get_selected_columns()
+            if columns: return columns[0]
+        return None
 
     def first(self):
         self.slice_records()
