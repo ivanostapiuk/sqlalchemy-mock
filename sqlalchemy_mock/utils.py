@@ -33,7 +33,7 @@ def set_default_fields(record: object):
 
 
 def mock_sessions_methods(session: object):
-    db_mock_methods = {method: unittest.mock.MagicMock(side_effect=getattr(session, method)) for method in ("query", "add", "add_all", "commit", "refresh", "execute")}
+    db_mock_methods = {method: unittest.mock.MagicMock(side_effect=getattr(session, method)) for method in ("query", "add", "add_all", "commit", "refresh", "execute", "bulk_insert_mappings")}
     return unittest.mock.patch.multiple(sqlalchemy.orm.Session, **db_mock_methods)
 
 
@@ -41,7 +41,7 @@ def compare_record_with_filter(record: object, filter: object):
     def _base_filter_handler(record: object, filter: object):
         field = getattr(record, filter.left.name)
 
-        if isinstance(field, UUID):
+        if isinstance(field, UUID) or isinstance(field, int):
             field = str(field)
         elif not isinstance(field, str) and not isinstance(field, bool) and not field is None:
             field = field.value

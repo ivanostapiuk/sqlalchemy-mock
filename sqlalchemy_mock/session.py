@@ -62,6 +62,10 @@ class Session:
     def mock_session(self):
         return mock_sessions_methods(self)
 
+    def bulk_insert_mappings(self, table, values):
+        records = [table(**record) for record in values]
+        self.add_all(records)
+
     def get_records_by_instance(self, instance: object):
         return self.__storage.get(str(instance), [])
 
