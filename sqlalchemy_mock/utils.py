@@ -69,7 +69,11 @@ def compare_record_with_filter(record: object, filter: object):
         result = False
         for part in filter:
             if not getattr(part.left, "clause_expr", None) is None and part.left.clause_expr.element.operator.__name__ == "comma_op":
-                record_field = getattr(record, part.left.clause_expr.element.clauses[0].name)
+                if isinstance(part.left.clause_expr.element.clauses[0], sqlalchemy.sql.elements.Cast):
+                    record_field = getattr(record, part.left.clause_expr.element.clauses[0].clause.name)
+                else:
+                    record_field = getattr(record, part.left.clause_expr.element.clauses[0].name)
+
                 if part.left.name in ("lower", "upper"):
                     record_field = getattr(record_field, part.left.name)()
 
