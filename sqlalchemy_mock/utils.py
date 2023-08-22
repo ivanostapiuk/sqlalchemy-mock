@@ -79,6 +79,8 @@ def compare_record_with_filter(record: object, filter: object):
 
                 if part.right.value in record_field:
                     result = True
+            elif compare_record_with_filter(record, part) is not False:
+                result = True
 
         return result
 
@@ -90,10 +92,18 @@ def compare_record_with_filter(record: object, filter: object):
         if not filter.right.value in record_field:
             return False
 
+    def _is_filter_handler(record: object, filter: object):
+        record_field = getattr(record, filter.left.name)
+        value = getattr(filter.right, "value", None)
+
+        if record_field is value:
+            return True
+
     filter_handlers = {
         "in_op": _in_op_filter_handler,
         "or_": _or_filter_handler,
-        "contains_op": _contains_op_filter_handler
+        "contains_op": _contains_op_filter_handler,
+        "is_": _is_filter_handler,
     }
 
     filter_operator =  filter.operator.__name__
