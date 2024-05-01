@@ -28,6 +28,9 @@ def set_default_fields(record: object):
         if column.default and not getattr(record, column.name, None):
             value = column.default.arg
             if isinstance(column.default.arg, FunctionType):
+                value_wrapped = getattr(value, "__wrapped__", None)
+                value = value_wrapped if value_wrapped else value
+
                 value = functions.get(column.default.arg.__name__, value)()
             setattr(record, column.name, value)
 
