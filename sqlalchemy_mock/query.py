@@ -1,3 +1,4 @@
+import copy
 from .utils import filter_records, set_choice_fields_to_record, sort_records
 
 
@@ -45,6 +46,10 @@ class Query:
             for key in data.keys():
                 setattr(record, key, data[key])
             set_choice_fields_to_record(record)
+
+    def distinct(self):
+        result = copy.deepcopy(self.records)
+        return set(result)
 
     def delete(self):
         self.session.delete(self.instance, self.records)
