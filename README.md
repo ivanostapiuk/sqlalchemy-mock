@@ -1,36 +1,35 @@
 # sqlalchemy-mock
 
-The package for working with SQLAlchemy in unit tests,
-it mocks requests to database, and provides necessary functionality within unit tests
+A package for working with SQLAlchemy in unit tests.
+It mocks database interactions and provides the necessary functionality for unit testing without a real database.
 
-It doesn't work with existing databases and doesn't create any tests databases, thanks to this it works enouth fast
+It does not work with existing databases and does not create test databases, which makes it fast and lightweight
 
 ## Installing
-Exists a few aproaches to install package:
+There are several ways to install the package:
 
-- You can clone this repository and run the next command to install package from local sourse:
+- **From a local source**. You can clone this repository and install the package from the local source:
     ```
     pip install -e /path/to/repository
     ```
-- You can install this package from github:
+- **From GitHub**. You can install the package directly from GitHub:
     ```
     pip install git+https://github.com/ivanostapiuk/sqlalchemy-mock.git
     ```
-- There is a package also in pypi:
+- **From PyPI**. The package is also available on PyPI:
     ```
     pip install sqlalchemy-mock
     ```
 
 ## How to use
-By default primary key is 'uuid', but you can set another field as primary key and function to generate value, for example:
-
+By default, the primary key field is uuid. However, you can configure a different field as the primary key and provide a custom value generation function, for example:
 ```python
 import uuid
 
 
 db = Session(primary_key="uuid", primary_key_generate=lambda: str(uuid.uuid4()))
 ```
-A simple example how to use it in flask:
+A simple example of how to use it with Flask:
 
 ```python
 import unittest
@@ -57,7 +56,7 @@ class TestCase(unittest.TestCase):
 
 
 ## Runinng unittests
-To run unittests use command:
+To run the unit tests, use the following command:
 
 ```
 python -m unittest
